@@ -53,21 +53,24 @@ public class YoutubeInbound extends GenericPollingConsumer {
 		log.info("youtubeProperties : " + youtubeProperties);
 
 		this.youtubeRetriever = new YoutubeRetriever(this.name, scanInterval, apiKey, apiPlaylistId, youtubeProperties,
-				this.registryHandler);
+				this.registryHandler, this);
 
 		log.info("Youtube polling consumer Initialized.");
 	}
 
 	public void destroy() {
-		this.registryHandler.deleteResourceFromRegistry(this.name);
+		// this.registryHandler.deleteResourceFromRegistry(this.name);
 		log.info("Destroy invoked.");
 	}
 
 	public Object poll() {
-		String out = this.youtubeRetriever.execute();
-		if (out != null) {
-			this.injectMessage(out, YoutubeConstant.CONTENT_TYPE_APPLICATION_JSON);
-		}
+		this.youtubeRetriever.execute();
 		return null;
 	}
+
+	@Override
+	public boolean injectMessage(String strMessage, String contentType) {
+		return super.injectMessage(strMessage, contentType);
+	}
+
 }
