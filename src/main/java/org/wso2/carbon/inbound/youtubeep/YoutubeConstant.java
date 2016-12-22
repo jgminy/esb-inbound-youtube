@@ -13,11 +13,12 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.wso2.carbon.inbound.youtoubeep;
+package org.wso2.carbon.inbound.youtubeep;
 
 public class YoutubeConstant {
 	public static final String API_KEY = "api.key";
 	public static final String API_PLAYLIST_ID = "api.playlistId";
+	public static final String API_YOUTUBE_PREFIX = "youtube.";
 
 
 	public static final String REGISTRY_TIME_FORMAT = "yyyy/MM/dd HH:mm:ss Z";

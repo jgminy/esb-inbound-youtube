@@ -1,12 +1,13 @@
-package org.wso2.carbon.inbound.youtoubeep.retriever;
+package org.wso2.carbon.inbound.youtubeep.retriever;
 
 import java.io.IOException;
 import java.util.Date;
+import java.util.Properties;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
-import org.wso2.carbon.inbound.youtoubeep.YoutubeConstant;
-import org.wso2.carbon.inbound.youtoubeep.YoutubeRegistryHandler;
+import org.wso2.carbon.inbound.youtubeep.YoutubeConstant;
+import org.wso2.carbon.inbound.youtubeep.YoutubeRegistryHandler;
 
 import com.google.api.client.http.HttpRequest;
 import com.google.api.client.http.HttpRequestInitializer;
@@ -27,6 +28,7 @@ public class YoutubeRetriever {
 	private long lastRanTime;
 	private String apiKey;
 	private String apiPlaylistId;
+	private Properties youtubeProperties;
 	private static YouTube youtube;
 
 	private YoutubeRegistryHandler registryHandler;
@@ -41,12 +43,13 @@ public class YoutubeRetriever {
 	 */
 	public static final JsonFactory JSON_FACTORY = new JacksonFactory();
 
-	public YoutubeRetriever(long scanInterval, String apiKey, String apiPlaylistId,
-			YoutubeRegistryHandler registryHandler, String name) {
+	public YoutubeRetriever(String name, long scanInterval, String apiKey, String apiPlaylistId,
+			Properties youtubeProperties, YoutubeRegistryHandler registryHandler) {
 		this.name = name;
 
 		this.apiKey = apiKey;
 		this.apiPlaylistId = apiPlaylistId;
+		this.youtubeProperties = youtubeProperties;
 
 		this.scanInterval = scanInterval;
 
@@ -78,24 +81,36 @@ public class YoutubeRetriever {
 	private String consume() {
 
 		try {
-			YouTube.PlaylistItems.List list = youtube.playlistItems().list("id,snippet,contentDetails")
-					.setPlaylistId(this.apiPlaylistId).setKey(this.apiKey).setMaxResults(NUMBER_OF_VIDEOS_RETURNED);
+			YouTube.PlaylistItems.List list = youtube.playlistItems().list("id").setPlaylistId(this.apiPlaylistId)
+					.setKey(this.apiKey).setMaxResults(NUMBER_OF_VIDEOS_RETURNED);
+			
+			for (Object okey : this.youtubeProperties.keySet()) {
+				String key = (String)okey;
+				list.set(key, this.youtubeProperties.getProperty(key));
+			}
 
 			PlaylistItemListResponse listResponse = list.execute();
 
 			String lastRegistryETag = registryHandler.readPropertiesFromRegistry(name,
 					YoutubeConstant.REGISTRY_YOUTUBEEP_UPDATE_DATE_PROP);
 
+			log.debug("lastRegistryETag: " + lastRegistryETag);
+			log.debug("listResponseETag: " + listResponse.getEtag());
+
 			if (lastRegistryETag != null) {
 				if (!lastRegistryETag.equals(listResponse.getEtag())) {
+					log.debug("listResponseETag != lastRegistryETag");
 					registryHandler.writePropertiesToRegistry(name, YoutubeConstant.REGISTRY_YOUTUBEEP_UPDATE_DATE_PROP,
 							listResponse.getEtag());
+					log.info("Playlist updated to be injected: " + name);
 					return listResponse.toPrettyString();
 				}
 
 			} else {
+				log.debug("lastRegistryETag is null");
 				registryHandler.writePropertiesToRegistry(name, YoutubeConstant.REGISTRY_YOUTUBEEP_UPDATE_DATE_PROP,
 						listResponse.getEtag());
+				log.info("Playlist updated to be injected: " + name);
 				return listResponse.toPrettyString();
 			}
 

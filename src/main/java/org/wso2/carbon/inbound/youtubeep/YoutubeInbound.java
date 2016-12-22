@@ -14,21 +14,19 @@
  * limitations under the License.
  */
 
-package org.wso2.carbon.inbound.youtoubeep;
+package org.wso2.carbon.inbound.youtubeep;
 
 import java.util.Properties;
+import java.util.Set;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.synapse.core.SynapseEnvironment;
 import org.wso2.carbon.inbound.endpoint.protocol.generic.GenericPollingConsumer;
-import org.wso2.carbon.inbound.youtoubeep.retriever.YoutubeRetriever;
+import org.wso2.carbon.inbound.youtubeep.retriever.YoutubeRetriever;
 
 public class YoutubeInbound extends GenericPollingConsumer {
 	private static final Log log = LogFactory.getLog(YoutubeInbound.class);
-
-	private String apiKey;
-	private String apiPlaylistId;
 
 	private YoutubeRetriever youtubeRetriever = null;
 	private final YoutubeRegistryHandler registryHandler = new YoutubeRegistryHandler();
@@ -38,14 +36,24 @@ public class YoutubeInbound extends GenericPollingConsumer {
 		super(properties, name, synapseEnvironment, scanInterval, injectingSeq, onErrorSeq, coordination, sequential);
 		log.info("Initialize Youtube polling consumer: " + this.name);
 
-		this.apiKey = getInboundProperties().getProperty(YoutubeConstant.API_KEY);
-		this.apiPlaylistId = getInboundProperties().getProperty(YoutubeConstant.API_PLAYLIST_ID);
+		String apiKey = getInboundProperties().getProperty(YoutubeConstant.API_KEY);
+		String apiPlaylistId = getInboundProperties().getProperty(YoutubeConstant.API_PLAYLIST_ID);
+		Properties youtubeProperties = new Properties();
+		Set<Object> set = getInboundProperties().keySet();
+		for (Object okey : set) {
+			String key = (String) okey;
+			if (key.startsWith(YoutubeConstant.API_YOUTUBE_PREFIX)) {
+				youtubeProperties.setProperty(key.replaceAll(YoutubeConstant.API_YOUTUBE_PREFIX, ""),
+						getInboundProperties().getProperty(key));
+			}
+		}
 
-		log.info("apiKey        : " + this.apiKey);
-		log.info("apiPlaylistId : " + this.apiPlaylistId);
+		log.info("apiKey            : " + apiKey);
+		log.info("apiPlaylistId     : " + apiPlaylistId);
+		log.info("youtubeProperties : " + youtubeProperties);
 
-		this.youtubeRetriever = new YoutubeRetriever(scanInterval, this.apiKey, this.apiPlaylistId,
-				this.registryHandler, this.name);
+		this.youtubeRetriever = new YoutubeRetriever(this.name, scanInterval, apiKey, apiPlaylistId, youtubeProperties,
+				this.registryHandler);
 
 		log.info("Youtube polling consumer Initialized.");
 	}

@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package org.wso2.carbon.inbound.youtoubeep;
+package org.wso2.carbon.inbound.youtubeep;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
