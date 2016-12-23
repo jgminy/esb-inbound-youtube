@@ -36,15 +36,15 @@ public class YoutubeInbound extends GenericPollingConsumer {
 		super(properties, name, synapseEnvironment, scanInterval, injectingSeq, onErrorSeq, coordination, sequential);
 		log.info("Initialize Youtube polling consumer: " + this.name);
 
-		String apiKey = getInboundProperties().getProperty(YoutubeConstant.API_KEY);
-		String apiPlaylistId = getInboundProperties().getProperty(YoutubeConstant.API_PLAYLIST_ID);
+		String apiKey = getPropertyValue(YoutubeConstant.API_KEY);
+		String apiPlaylistId = getPropertyValue(YoutubeConstant.API_PLAYLIST_ID);		
 		Properties youtubeProperties = new Properties();
 		Set<Object> set = getInboundProperties().keySet();
 		for (Object okey : set) {
 			String key = (String) okey;
 			if (key.startsWith(YoutubeConstant.API_YOUTUBE_PREFIX)) {
-				youtubeProperties.setProperty(key.replaceAll(YoutubeConstant.API_YOUTUBE_PREFIX, ""),
-						getInboundProperties().getProperty(key));
+				String value = getPropertyValue(key);
+				youtubeProperties.setProperty(key.replaceAll(YoutubeConstant.API_YOUTUBE_PREFIX, ""), value);
 			}
 		}
 
@@ -71,6 +71,15 @@ public class YoutubeInbound extends GenericPollingConsumer {
 	@Override
 	public boolean injectMessage(String strMessage, String contentType) {
 		return super.injectMessage(strMessage, contentType);
+	}
+
+	private String getPropertyValue(String key) {
+		String value = getInboundProperties().getProperty(key);
+		if (value.startsWith(YoutubeConstant.GET_PROTERTY_FUNCTION)) {
+			value = (String) this.synapseEnvironment.getSynapseConfiguration().getEntry(
+					value.trim().substring(YoutubeConstant.GET_PROTERTY_FUNCTION.length() + 2, value.length() - 2));
+		}
+		return value;
 	}
 
 }

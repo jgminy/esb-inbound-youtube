@@ -26,4 +26,5 @@ public class YoutubeConstant {
 	public static final String REGISTRY_YOUTUBEEP_UPDATE_DATE_PROP = "last.updated";
 
 	public static final String CONTENT_TYPE_APPLICATION_JSON = "application/json";
+	public static final String GET_PROTERTY_FUNCTION = "get-property";
 }
