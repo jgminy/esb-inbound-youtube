@@ -18,8 +18,10 @@ import com.google.api.client.http.javanet.NetHttpTransport;
 import com.google.api.client.json.JsonFactory;
 import com.google.api.client.json.jackson2.JacksonFactory;
 import com.google.api.services.youtube.YouTube;
+import com.google.api.services.youtube.model.PlaylistItem;
 import com.google.api.services.youtube.model.PlaylistItemListResponse;
 import com.google.api.services.youtube.model.PlaylistListResponse;
+import com.google.api.services.youtube.model.VideoListResponse;
 
 public class YoutubeRetriever {
 	private static final Log log = LogFactory.getLog(YoutubeRetriever.class);
@@ -85,6 +87,7 @@ public class YoutubeRetriever {
 
 		try {
 
+			/* Check if Playlist is modified */
 			YouTube.Playlists.List playList = youtube.playlists().list("id").setId(this.apiPlaylistId)
 					.setKey(this.apiKey);
 
@@ -115,20 +118,33 @@ public class YoutubeRetriever {
 				registryHandler.writePropertiesToRegistry(name, YoutubeConstant.REGISTRY_YOUTUBEEP_UPDATE_DATE_PROP,
 						listResponseETag);
 
-				YouTube.PlaylistItems.List list = youtube.playlistItems().list("id").setPlaylistId(this.apiPlaylistId)
-						.setKey(this.apiKey).setMaxResults(NUMBER_OF_VIDEOS_RETURNED);
-
-				for (Object okey : this.youtubeProperties.keySet()) {
-					String key = (String) okey;
-					list.set(key, this.youtubeProperties.getProperty(key));
-				}
+				/* Retrieve Playlist videos list */
+				YouTube.PlaylistItems.List list = youtube.playlistItems().list("contentDetails")
+						.setPlaylistId(this.apiPlaylistId).setKey(this.apiKey).setMaxResults(NUMBER_OF_VIDEOS_RETURNED);
 
 				PlaylistItemListResponse listResponse = null;
 				do {
 					listResponse = list.execute();
-					log.info("Playlist updated to be injected: " + name);
-					youtubeInbound.injectMessage(listResponse.toString(),
-							YoutubeConstant.CONTENT_TYPE_APPLICATION_JSON);
+
+					for (PlaylistItem playlistItem : listResponse.getItems()) {
+						/* Retrieve Video Informations */
+						YouTube.Videos.List videosList = youtube.videos().list("snippet, contentDetails")
+								.setKey(this.apiKey).setId(playlistItem.getContentDetails().getVideoId());
+
+						for (Object okey : this.youtubeProperties.keySet()) {
+							String key = (String) okey;
+							videosList.set(key, this.youtubeProperties.getProperty(key));
+						}
+
+						VideoListResponse videoListResponse = videosList.execute();
+
+						log.info("Playlist Video updated to be injected: " + videoListResponse.getItems().get(0).getId());
+
+						youtubeInbound.injectMessage(videoListResponse.toString(),
+								YoutubeConstant.CONTENT_TYPE_APPLICATION_JSON);
+					}
+
+					/* Retrieve Playlist videos list next page*/
 					list.setPageToken(listResponse.getNextPageToken());
 				} while (!StringUtils.isEmpty(listResponse.getNextPageToken()));
 			}
